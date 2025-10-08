@@ -1,14 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useScrollAnimation, heroAnimation, textAnimation, fadeInUp } from './hooks/useScrollAnimation';
 import logoImage from '../assets/logo.png';
 
 export function LogoReveal() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { ref: sectionRef, isVisible } = useScrollAnimation({ 
+  const sectionRef = useRef<HTMLHeadingElement>(null);
+  
+  // Pass the ref directly to useScrollAnimation
+  const { isVisible } = useScrollAnimation({ 
     threshold: 0.3,
     delay: 400
-  });
+  }, sectionRef);
+  
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start end", "end start"]
