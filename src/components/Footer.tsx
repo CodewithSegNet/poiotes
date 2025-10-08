@@ -5,7 +5,7 @@ import { Github, Linkedin, Twitter, Mail, Instagram, Facebook } from 'lucide-rea
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { PrivacyPolicy } from './PrivacyPolicy';
 import { TermsOfService } from './TermsOfService';
-import logo from '../assets/logo2.png';
+import logo from '../../assets/logo2.png';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();

@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useScrollAnimation, heroAnimation, textAnimation, fadeInUp } from './hooks/useScrollAnimation';
-import logoImage from '../assets/logo.png';
+import logoImage from '../../assets/logo.png';
 
 function LogoReveal() {
   const containerRef = useRef<HTMLDivElement>(null);
