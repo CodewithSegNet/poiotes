@@ -1,235 +1,362 @@
-import { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { useScrollAnimation, heroAnimation, textAnimation, fadeInUp } from './hooks/useScrollAnimation';
-import logoImage from '../assets/logo.png';
+"use client";
 
-export function LogoReveal() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const sectionRef = useRef<HTMLHeadingElement>(null);
-  
-  // Pass the ref directly to useScrollAnimation
-  const { isVisible } = useScrollAnimation({ 
-    threshold: 0.3,
-    delay: 400
-  }, sectionRef);
-  
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "end start"]
-  });
+import * as React from "react";
+import * as RechartsPrimitive from "recharts";
 
-  // Transform values for different elements
-  const logoScale = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0.5, 1, 1.1, 1]);
-  const logoOpacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 0.3, 1, 1]);
-  const logoRotate = useTransform(scrollYProgress, [0, 0.5, 1], [10, 0, -2]);
-  
-  // Background gradient animation
-  const backgroundOpacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 0.5, 0.8, 0.3]);
-  
-  // Text reveal animations
-  const textY = useTransform(scrollYProgress, [0, 0.4, 0.8, 1], [50, 20, 0, -20]);
-  const textOpacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 0, 1, 1]);
+import { cn } from "./utils";
+
+// Format: { THEME_NAME: CSS_SELECTOR }
+const THEMES = { light: "", dark: ".dark" } as const;
+
+export type ChartConfig = {
+  [k in string]: {
+    label?: React.ReactNode;
+    icon?: React.ComponentType;
+  } & (
+    | { color?: string; theme?: never }
+    | { color?: never; theme: Record<keyof typeof THEMES, string> }
+  );
+};
+
+type ChartContextProps = {
+  config: ChartConfig;
+};
+
+const ChartContext = React.createContext<ChartContextProps | null>(null);
+
+function useChart() {
+  const context = React.useContext(ChartContext);
+
+  if (!context) {
+    throw new Error("useChart must be used within a <ChartContainer />");
+  }
+
+  return context;
+}
+
+function ChartContainer({
+  id,
+  className,
+  children,
+  config,
+  ...props
+}: React.ComponentProps<"div"> & {
+  config: ChartConfig;
+  children: React.ComponentProps<
+    typeof RechartsPrimitive.ResponsiveContainer
+  >["children"];
+}) {
+  const uniqueId = React.useId();
+  const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
 
   return (
-    <section 
-      ref={containerRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background via-background/95 to-muted/20"
-    >
-      {/* Animated Background Elements */}
-      <motion.div 
-        className="absolute inset-0 bg-gradient-to-br from-yellow-300/5 via-transparent to-yellow-300/10"
-        style={{ opacity: backgroundOpacity }}
-      />
-      
-      {/* Geometric Pattern Background */}
-      <div className="absolute inset-0 opacity-5">
-        <div 
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `radial-gradient(circle at 25% 25%, #facc15 1px, transparent 1px),
-                             radial-gradient(circle at 75% 75%, #facc15 1px, transparent 1px)`,
-            backgroundSize: '60px 60px',
-            backgroundPosition: '0 0, 30px 30px'
-          }}
-        />
+    <ChartContext.Provider value={{ config }}>
+      <div
+        data-slot="chart"
+        data-chart={chartId}
+        className={cn(
+          "[&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border flex aspect-video justify-center text-xs [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
+          className,
+        )}
+        {...props}
+      >
+        <ChartStyle id={chartId} config={config} />
+        <RechartsPrimitive.ResponsiveContainer>
+          {children}
+        </RechartsPrimitive.ResponsiveContainer>
       </div>
-
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          
-          {/* Logo Container */}
-          <motion.div 
-            className="relative mb-8 sm:mb-12 flex items-center justify-center"
-            style={{ 
-              scale: logoScale,
-              opacity: logoOpacity,
-              rotate: logoRotate
-            }}
-          >
-            {/* Glow Effect */}
-            <motion.div 
-              className="absolute inset-0 rounded-full bg-yellow-300/20 blur-3xl"
-              animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.2, 0.4, 0.2]
-              }}
-              transition={{ 
-                duration: 6, 
-                repeat: Infinity, 
-                ease: [0.25, 0.1, 0.25, 1]
-              }}
-              style={{ 
-                width: '120%', 
-                height: '120%',
-                left: '-10%',
-                top: '-10%'
-              }}
-            />
-
-            {/* Main Logo */}
-            <motion.div 
-              className="relative z-10 p-8 sm:p-12"
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-            >
-              <img 
-                src={logoImage} 
-                alt="Poietes Logo" 
-                className="w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-contain mx-auto filter drop-shadow-2xl"
-                style={{
-                  filter: 'drop-shadow(0 25px 50px rgba(250, 204, 21, 0.3)) drop-shadow(0 0 100px rgba(250, 204, 21, 0.2))'
-                }}
-              />
-            </motion.div>
-
-            {/* Animated Border Elements */}
-            <motion.div 
-              className="absolute inset-0 rounded-2xl border border-yellow-300/10"
-              animate={{
-                rotate: [0, 360],
-                scale: [1, 1.02, 1]
-              }}
-              transition={{ 
-                rotate: { duration: 30, repeat: Infinity, ease: "linear" },
-                scale: { duration: 8, repeat: Infinity, ease: [0.25, 0.1, 0.25, 1] }
-              }}
-            />
-            
-            <motion.div 
-              className="absolute inset-4 rounded-xl border border-yellow-300/5"
-              animate={{
-                rotate: [360, 0],
-                scale: [1.02, 1, 1.02]
-              }}
-              transition={{ 
-                rotate: { duration: 25, repeat: Infinity, ease: "linear" },
-                scale: { duration: 10, repeat: Infinity, ease: [0.25, 0.1, 0.25, 1] }
-              }}
-            />
-          </motion.div>
-
-          {/* Text Content */}
-          <motion.div 
-            className="space-y-4 sm:space-y-6"
-            style={{ 
-              y: textY,
-              opacity: textOpacity 
-            }}
-          >
-            <motion.h2 
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
-              ref={sectionRef}
-              initial="hidden"
-              animate={isVisible ? "visible" : "hidden"}
-              variants={heroAnimation}
-            >
-              <span className="bg-gradient-to-r from-foreground via-yellow-300 to-foreground bg-clip-text text-transparent">
-                Poietes
-              </span>
-            </motion.h2>
-            
-            <motion.p 
-              className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
-              variants={textAnimation}
-            >
-              Crafting <span className="text-yellow-300 font-medium">exceptional software</span> that transforms businesses and drives innovation forward.
-            </motion.p>
-
-            {/* Scroll Indicator */}
-            <motion.div 
-              className="flex items-center justify-center mt-12 sm:mt-16"
-              variants={fadeInUp}
-            >
-              <motion.div 
-                className="flex flex-col items-center space-y-2 text-muted-foreground/60"
-                animate={{ y: [0, 6, 0] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: [0.25, 0.1, 0.25, 1] }}
-              >
-                <span className="text-sm tracking-wider uppercase">Discover More</span>
-                <div className="w-px h-8 bg-gradient-to-b from-transparent via-yellow-300/50 to-transparent" />
-                <motion.div 
-                  className="w-2 h-2 rounded-full bg-yellow-300/80"
-                  animate={{ 
-                    scale: [1, 1.2, 1],
-                    opacity: [0.7, 1, 0.7]
-                  }}
-                  transition={{ 
-                    duration: 2.5, 
-                    repeat: Infinity, 
-                    ease: [0.25, 0.1, 0.25, 1]
-                  }}
-                />
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Floating Elements */}
-      <motion.div 
-        className="absolute top-1/4 left-1/4 w-2 h-2 bg-yellow-300/40 rounded-full"
-        animate={{
-          y: [0, -30, 0],
-          x: [0, 20, 0],
-          opacity: [0.4, 0.8, 0.4]
-        }}
-        transition={{ 
-          duration: 6, 
-          repeat: Infinity, 
-          ease: "easeInOut",
-          delay: 0
-        }}
-      />
-      
-      <motion.div 
-        className="absolute top-3/4 right-1/3 w-1 h-1 bg-yellow-300/60 rounded-full"
-        animate={{
-          y: [0, 40, 0],
-          x: [0, -15, 0],
-          opacity: [0.6, 1, 0.6]
-        }}
-        transition={{ 
-          duration: 8, 
-          repeat: Infinity, 
-          ease: "easeInOut",
-          delay: 2
-        }}
-      />
-
-      <motion.div 
-        className="absolute bottom-1/3 left-1/6 w-3 h-3 bg-yellow-300/30 rounded-full"
-        animate={{
-          y: [0, -50, 0],
-          opacity: [0.3, 0.7, 0.3],
-          scale: [1, 1.5, 1]
-        }}
-        transition={{ 
-          duration: 10, 
-          repeat: Infinity, 
-          ease: "easeInOut",
-          delay: 4
-        }}
-      />
-    </section>
+    </ChartContext.Provider>
   );
 }
+
+const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
+  const colorConfig = Object.entries(config).filter(
+    ([, config]) => config.theme || config.color,
+  );
+
+  if (!colorConfig.length) {
+    return null;
+  }
+
+  return (
+    <style
+      dangerouslySetInnerHTML={{
+        __html: Object.entries(THEMES)
+          .map(
+            ([theme, prefix]) => `
+${prefix} [data-chart=${id}] {
+${colorConfig
+  .map(([key, itemConfig]) => {
+    const color =
+      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+      itemConfig.color;
+    return color ? `  --color-${key}: ${color};` : null;
+  })
+  .join("\n")}
+}
+`,
+          )
+          .join("\n"),
+      }}
+    />
+  );
+};
+
+const ChartTooltip = RechartsPrimitive.Tooltip;
+
+type TooltipProps = React.ComponentProps<typeof RechartsPrimitive.Tooltip>;
+
+function ChartTooltipContent({
+  active,
+  payload,
+  className,
+  indicator = "dot",
+  hideLabel = false,
+  hideIndicator = false,
+  label,
+  labelFormatter,
+  labelClassName,
+  formatter,
+  color,
+  nameKey,
+  labelKey,
+}: TooltipProps & {
+  hideLabel?: boolean;
+  hideIndicator?: boolean;
+  indicator?: "line" | "dot" | "dashed";
+  nameKey?: string;
+  labelKey?: string;
+}) {
+  const { config } = useChart();
+
+  const tooltipLabel = React.useMemo(() => {
+    if (hideLabel || !payload?.length) {
+      return null;
+    }
+
+    const [item] = payload;
+    const key = `${labelKey || item?.dataKey || item?.name || "value"}`;
+    const itemConfig = getPayloadConfigFromPayload(config, item, key);
+    const value =
+      !labelKey && typeof label === "string"
+        ? config[label as keyof typeof config]?.label || label
+        : itemConfig?.label;
+
+    if (labelFormatter) {
+      return (
+        <div className={cn("font-medium", labelClassName)}>
+          {labelFormatter(value, payload)}
+        </div>
+      );
+    }
+
+    if (!value) {
+      return null;
+    }
+
+    return <div className={cn("font-medium", labelClassName)}>{value}</div>;
+  }, [
+    label,
+    labelFormatter,
+    payload,
+    hideLabel,
+    labelClassName,
+    config,
+    labelKey,
+  ]);
+
+  if (!active || !payload?.length) {
+    return null;
+  }
+
+  const nestLabel = payload.length === 1 && indicator !== "dot";
+
+  return (
+    <div
+      className={cn(
+        "border-border/50 bg-background grid min-w-[8rem] items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl",
+        className,
+      )}
+    >
+      {!nestLabel ? tooltipLabel : null}
+      <div className="grid gap-1.5">
+        {payload.map((item: any, index: number) => {
+          const key = `${nameKey || item.name || item.dataKey || "value"}`;
+          const itemConfig = getPayloadConfigFromPayload(config, item, key);
+          const indicatorColor = color || item.payload?.fill || item.color;
+
+          return (
+            <div
+              key={item.dataKey}
+              className={cn(
+                "[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5",
+                indicator === "dot" && "items-center",
+              )}
+            >
+              {formatter && item?.value !== undefined && item.name ? (
+                formatter(item.value, item.name, item, index, item.payload)
+              ) : (
+                <>
+                  {itemConfig?.icon ? (
+                    <itemConfig.icon />
+                  ) : (
+                    !hideIndicator && (
+                      <div
+                        className={cn(
+                          "shrink-0 rounded-[2px] border-(--color-border) bg-(--color-bg)",
+                          {
+                            "h-2.5 w-2.5": indicator === "dot",
+                            "w-1": indicator === "line",
+                            "w-0 border-[1.5px] border-dashed bg-transparent":
+                              indicator === "dashed",
+                            "my-0.5": nestLabel && indicator === "dashed",
+                          },
+                        )}
+                        style={
+                          {
+                            "--color-bg": indicatorColor,
+                            "--color-border": indicatorColor,
+                          } as React.CSSProperties
+                        }
+                      />
+                    )
+                  )}
+                  <div
+                    className={cn(
+                      "flex flex-1 justify-between leading-none",
+                      nestLabel ? "items-end" : "items-center",
+                    )}
+                  >
+                    <div className="grid gap-1.5">
+                      {nestLabel ? tooltipLabel : null}
+                      <span className="text-muted-foreground">
+                        {itemConfig?.label || item.name}
+                      </span>
+                    </div>
+                    {item.value && (
+                      <span className="text-foreground font-mono font-medium tabular-nums">
+                        {item.value.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const ChartLegend = RechartsPrimitive.Legend;
+
+type LegendPayload = Array<{
+  value: string;
+  color?: string;
+  dataKey?: string;
+  payload?: any;
+}>;
+
+function ChartLegendContent({
+  className,
+  hideIcon = false,
+  payload = [],
+  verticalAlign = "bottom",
+  nameKey,
+}: React.ComponentProps<"div"> & {
+  hideIcon?: boolean;
+  nameKey?: string;
+  payload?: LegendPayload;
+  verticalAlign?: "top" | "bottom";
+}) {
+  const { config } = useChart();
+
+  if (!payload?.length) {
+    return null;
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-center gap-4",
+        verticalAlign === "top" ? "pb-3" : "pt-3",
+        className,
+      )}
+    >
+      {payload.map((item) => {
+        const key = `${nameKey || item.dataKey || "value"}`;
+        const itemConfig = getPayloadConfigFromPayload(config, item, key);
+
+        return (
+          <div
+            key={item.value}
+            className={cn(
+              "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3",
+            )}
+          >
+            {itemConfig?.icon && !hideIcon ? (
+              <itemConfig.icon />
+            ) : (
+              <div
+                className="h-2 w-2 shrink-0 rounded-[2px]"
+                style={{
+                  backgroundColor: item.color,
+                }}
+              />
+            )}
+            {itemConfig?.label}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Helper to extract item config from a payload.
+function getPayloadConfigFromPayload(
+  config: ChartConfig,
+  payload: unknown,
+  key: string,
+) {
+  if (typeof payload !== "object" || payload === null) {
+    return undefined;
+  }
+
+  const payloadPayload =
+    "payload" in payload &&
+    typeof payload.payload === "object" &&
+    payload.payload !== null
+      ? payload.payload
+      : undefined;
+
+  let configLabelKey: string = key;
+
+  if (
+    key in payload &&
+    typeof payload[key as keyof typeof payload] === "string"
+  ) {
+    configLabelKey = payload[key as keyof typeof payload] as string;
+  } else if (
+    payloadPayload &&
+    key in payloadPayload &&
+    typeof payloadPayload[key as keyof typeof payloadPayload] === "string"
+  ) {
+    configLabelKey = payloadPayload[
+      key as keyof typeof payloadPayload
+    ] as string;
+  }
+
+  return configLabelKey in config
+    ? config[configLabelKey]
+    : config[key as keyof typeof config];
+}
+
+export {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  ChartStyle,
+};
