@@ -8,7 +8,7 @@ import { ServicesSection } from './components/ServicesSection';
 import { ContactSection } from './components/ContactSection';
 import { Footer } from './components/Footer';
 import { Toaster } from './components/ui/sonner';
-import favicon from '../assets/ef97fa2143deeaeef7998dc123cce76d82e4e8c8.png';
+import favicon from '../assets/logo.png';
 
 export default function App() {
   const [isPageReady, setIsPageReady] = useState(false);
@@ -41,7 +41,7 @@ export default function App() {
           "link[rel='icon'], link[rel='shortcut icon'], link[rel='apple-touch-icon'], link[rel='apple-touch-icon-precomposed']"
         );
         existingFavicons.forEach(link => {
-          console.log('Removing existing favicon:', link.href);
+console.log('Removing existing favicon:', (link as HTMLLinkElement).href);
           link.remove();
         });
 
