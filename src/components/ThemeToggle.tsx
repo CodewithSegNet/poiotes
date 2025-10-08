@@ -1,0 +1,1 @@
+// This file has been removed - theme toggle functionality is no longer needed
